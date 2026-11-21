@@ -145,11 +145,15 @@ def corrected_contrast(monthly, full, p, signal, variance, counts, slope, floor,
     })
 
 
-def run_folds(visits, full, panel, stack):
+def run_folds(visits, full, panel, stack, region=None):
     monthly = monthly_rates(visits)
     balanced = matched_environment_rates(visits)
     outputs = []
-    for fold, (train, test) in enumerate(GroupKFold(n_splits=5).split(panel, groups=panel.State), 1):
+    groups = panel.State if region is None else region.reindex(panel.index)
+    if groups.isna().any():
+        raise ValueError("Every plant must have a geographical group")
+    n_splits = 5 if region is None else groups.nunique()
+    for fold, (train, test) in enumerate(GroupKFold(n_splits=n_splits).split(panel, groups=groups), 1):
         training_sites, test_sites = panel.index[train], panel.index[test]
         assert set(panel.iloc[train].State).isdisjoint(panel.iloc[test].State)
         fitted = train_prior(full, stack, training_sites, 2023)

@@ -45,3 +45,7 @@ Run `paired_change.py` on the annual retrieval outputs, full-year stack files, a
 For `benchmark_fuel_models.py`, use `decisions_2023_2024.csv` and `external_2024_2025_estimates.csv` from the respective validation scripts. An optional TabICLv2 comparison uses `tabicl==2.2.0` and its public [regression checkpoint](https://huggingface.co/jingang/TabICL). Pass the downloaded file via `--foundation-checkpoint`.
 
 For the monthly satellite benchmark, pass `decisions_2023_2024.csv` to `--primary` and `workflow_2023_2024.csv` to `--paired`.
+
+## Geographic and decision checks
+
+Run `audit_annual_design.py` with the annual retrieval outputs, fuel-model evaluation files, later-year estimates, and calendar-year stack files. It writes state-group membership, point-estimate rankings at common false-call allowances, whole-region holdouts, and coverage and change-threshold checks.
