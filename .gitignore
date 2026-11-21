@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+inputs/
+work/
+results/
+*.csv
+*.parquet
+*.nc
+*.nc4
+*.xlsx
+*.tsv.gz
+*.pdf
+*.docx
