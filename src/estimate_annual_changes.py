@@ -208,7 +208,8 @@ def assess(result, methods):
         decisions.append(dict(method=column, n=int(truth.notna().sum()), actual_declines=int(declined.sum()),
                               correct_declines=int(correct.sum()), false_declines=int((flag & ~declined).sum()),
                               coverage=truth.dropna().le(result.loc[truth.notna(), column]).mean(),
-                              fraction_decline_mass=truth[correct].sum() / truth[declined].sum() if declined.any() else np.nan))
+                              fraction_measured_rate_decline=truth[correct].sum() / truth[declined].sum()
+                              if declined.any() else np.nan))
     return pd.DataFrame(rows), pd.DataFrame(decisions)
 
 
