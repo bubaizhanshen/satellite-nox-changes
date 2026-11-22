@@ -375,7 +375,8 @@ def score(args):
         blocks = blocks.loc[blocks.priority_panel]
     blocks = blocks.loc[blocks.block_id.mod(args.shards).eq(args.shard)]
     jobs = []
-    scored_dir = args.work / ("scored" if args.provider == "rsig" else f"scored_{args.provider}")
+    name = "scored" if args.provider == "rsig" else f"scored_{args.provider}"
+    scored_dir = args.work / (f"{name}_image_only" if args.no_stack else name)
     scored_dir.mkdir(exist_ok=True)
     cases = pd.read_parquet(args.output / "visits.parquet")
     cases["tropomi_utc"] = cases.utc_time
@@ -420,8 +421,10 @@ def score(args):
         raise ValueError("A panel plant has no prior-year emissions in the frozen inventory")
     by_block = {number: group for number, group in cases.groupby("block_id", sort=False)}
     by_year = {}
-    for year, visits in cases.groupby("year"):
-        by_year[year] = stack_reference(args.ground, visits.location.unique().tolist(), year)
+    if not args.no_stack:
+        for year, visits in cases.groupby("year"):
+            by_year[year] = stack_reference(args.ground, visits.location.unique().tolist(), year)
+    empty_stack = pd.Series(index=pd.DatetimeIndex([], tz="UTC"), dtype=float)
     counts = 0
     for index, (row, files, path) in enumerate(jobs, start=1):
         scenes, times, labels = monthly_scenes(files) if files else ({}, np.empty(0), np.empty(0))
@@ -444,7 +447,8 @@ def score(args):
                                 "nearest_pixel_km": distance, "origin": origin,
                                 "pixel_error": "No matched native scene near the plant"})
                 continue
-            record = measure(case, available, plants, cities, by_year[case.year][case.location])
+            reference = empty_stack if args.no_stack else by_year[case.year][case.location]
+            record = measure(case, available, plants, cities, reference)
             records.append({**record, "time_offset_s": lag, "nearest_pixel_km": distance, "origin": origin,
                             "pixel_error": ""})
         dest = path.with_suffix(".part")
@@ -466,6 +470,8 @@ def main():
     parser.add_argument("--work", type=Path, required=True)
     parser.add_argument("--raw", type=Path, default=Path("inputs/raw"))
     parser.add_argument("--ground", type=Path, default=Path("inputs/ground"))
+    parser.add_argument("--no-stack", action="store_true",
+                        help="Score native target images without opening any stack records")
     parser.add_argument("--development-work", type=Path, default=Path("inputs/development"))
     parser.add_argument("--inventory", type=Path)
     parser.add_argument("--workers", type=int, default=7)

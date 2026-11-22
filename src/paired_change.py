@@ -19,8 +19,11 @@ from satellite_fuel_baselines import (
 def full_stack_months(ground, locations, years):
     records = []
     for year in years:
-        raw = pd.read_parquet(ground / f"{year}.parquet", columns=["facility_id", "utc", "mass_kg"],
+        path = ground / f"{year}.parquet"
+        raw = pd.read_parquet(path, columns=["facility_id", "utc", "mass_kg"],
                               filters=[("facility_id", "in", list(locations))])
+        if not raw.utc.dt.year.eq(year).all() or raw.duplicated(["facility_id", "utc"]).any():
+            raise ValueError(f"Unexpected year or duplicate facility-hour in {path.name}")
         raw["month"] = raw.utc.dt.month
         months = raw.groupby(["facility_id", "month"]).mass_kg.agg(["mean", "count"]).reset_index()
         months = months.rename(columns={"facility_id": "location", "mean": "reference_all_hours_kg_h",
@@ -40,6 +43,8 @@ def sat_slope(training_visits):
     target, x = centered.satellite.to_numpy(), centered.matched_stack.to_numpy()
     robust_fit = least_squares(lambda b: (target - b[0] * x) * weights,
                                [1.0], bounds=(0.05, 5.0), loss="soft_l1", f_scale=50.0)
+    if not robust_fit.success:
+        raise RuntimeError(f"Satellite response fit failed: {robust_fit.message}")
     slope = robust_fit.x.item()
     raw_residual = train.satellite / slope - train.matched_stack
     monthly = raw_residual.groupby([train.location, train.month]).mean()

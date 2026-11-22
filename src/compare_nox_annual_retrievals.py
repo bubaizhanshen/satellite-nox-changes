@@ -19,6 +19,7 @@ METHODS = {
 }
 PRIMARY_METHODS = ("gaussian", "cross_section")
 TARGETS = {"coincident_cems": "reference_common_kg_h", "all_hours_cems": "reference_all_hours_kg_h"}
+ANNUAL_VALUES = ["estimated_rate_kg_h", "reference_selected_kg_h", *TARGETS.values()]
 PAIR_POLICIES = (
     ("all_signed", "archive_detected_only"),
     ("all_signed", "archive_persistence"),
@@ -200,7 +201,7 @@ def calendar_standardized(entries):
     Average the calendar months present in both years for the original screen
     and for the signed workflow. Use those exact months for every policy.
     """
-    values = ["estimated_rate_kg_h", *TARGETS.values()]
+    values = ANNUAL_VALUES
     monthly = entries.loc[entries.scale.eq("month") & entries.estimated_rate_kg_h.notna()].copy()
     monthly["year"] = monthly.period.str[:4]
     monthly["calendar_month"] = monthly.period.str[-2:]
@@ -225,7 +226,7 @@ def calendar_standardized(entries):
 
 
 def annual_trends(entries, panel, calendar):
-    cols = ["estimated_rate_kg_h", *TARGETS.values(), "valid_overpasses", "valid_months", "detected_overpasses"]
+    cols = [*ANNUAL_VALUES, "valid_overpasses", "valid_months", "detected_overpasses"]
     cols += ["attempted_overpasses", "scheduled_overpasses"]
     annual = entries.loc[entries.scale.eq("year")].set_index(["location", "flux_method", "policy", "period"])
     wide = annual[cols].unstack("period")
@@ -240,7 +241,7 @@ def annual_trends(entries, panel, calendar):
            | (unadjusted.detected_overpasses_2023.ge(5) & unadjusted.detected_overpasses_2024.ge(5)))
     ].assign(scope="high_coverage")
     rows = pd.concat([unadjusted, alternate, thorough], ignore_index=True)
-    for item in ("estimated_rate_kg_h", *TARGETS.values()):
+    for item in ANNUAL_VALUES:
         rows[f"{item}_change"] = rows[f"{item}_2024"] - rows[f"{item}_2023"]
     return rows.join(panel[["State", "Facility_Name", "stratum", "design_weight", "priority_panel",
                             "change_kg_h"]], on="location")
