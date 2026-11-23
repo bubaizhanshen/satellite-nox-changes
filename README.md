@@ -12,6 +12,7 @@ Core analysis code for comparing satellite, fuel, and earlier stack records in e
 | Fuel model and paired satellite correction | `read_eia_activity.py`, `paired_change.py`, `satellite_fuel_baselines.py` |
 | Decline calls, later year pair, and TEMPO | `validate_decisions.py`, `validate_next_year.py`, `tempo_check.py` |
 | Annual and monthly benchmarks | `benchmark_fuel_models.py`, `benchmark_monthly_satellite.py` |
+| Annual flux divergence and paired uncertainty | `annual_flux_divergence.py`, `compare_annual_flux.py`, `interval_coverage.py`, `label_sampling_sensitivity.py` |
 
 ## Setup
 
@@ -58,3 +59,14 @@ For the 2022 TROPOMI fit, run `prepare_satellite_schedule.py --calibration-year 
 For benchmarks using the original fuel model, `read_eia_activity.py` produces the inputs to `paired_change.py` and `validate_next_year.py`. Pass `paired_change_estimates.csv` to `validate_decisions.py --fusion`. The fuel and monthly satellite benchmarks use these estimates as matched comparators.
 
 Run `audit_annual_design.py` for state and region holdouts, coverage and change-threshold tests, and rankings at common false-call allowances.
+
+## Annual flux comparison
+
+Set `NOX_PROJECT_ROOT` to the study input tree. Under this root, the field preparation uses `results/nox_airborne_20261120/annual_retrieval_full_20261121/{scored_visits.parquet,panel.csv}` and `results/nox_airborne_20261120/annual_retrieval/visits.parquet`. Place native orbit cutouts in the `temis/` subdirectories of the corresponding retrieval folders under `work/nox_airborne_20261120/`.
+
+```bash
+python src/annual_flux_divergence.py
+python src/compare_annual_flux.py --draws 2000
+python src/interval_coverage.py results/annual_flux_plant_estimates.csv results/annual_flux_intervals.csv results/annual_flux_interval_coverage.csv
+python src/label_sampling_sensitivity.py "$NOX_PROJECT_ROOT/results/nox_airborne_20261120/annual_retrieval_full_20261121/plant_period_estimates.csv" results/annual_label_sampling_sensitivity.csv
+```
